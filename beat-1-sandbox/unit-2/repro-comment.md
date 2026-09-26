@@ -27,7 +27,7 @@ $ .venv/Scripts/python -m pytest "tests/unit/test_readme_parser.py::TestReadmePa
 
 Local paths replaced with <repo>, and plugin header lines trimmed to [...]; otherwise unedited.
 
-```
+```text
 ============================= test session starts =============================
 platform win32 -- Python 3.11.8, pytest-9.1.1, pluggy-1.6.0 -- <repo>\.venv\Scripts\python.exe
 rootdir: <repo>
@@ -73,4 +73,18 @@ tests\unit\test_readme_parser.py:156: AssertionError
 =========================== short test summary info ===========================
 FAILED tests/unit/test_readme_parser.py::TestReadmeParser::test_extract_heading_hierarchy
 ============================== 1 failed in 0.19s ==============================
+```
+
+### Result
+
+Reproduced on current `main`. With `--runxfail`, the test fails at line 156
+with `assert 0 > 0`: `_extract_heading_hierarchy` returns `[]` for the test's fixture.
+
+This matches the issue's description. Every line of the fixture starts with
+8 spaces, and reading the source, the parser only treats a line as a heading
+if `#` is its first character
+([`readme_parser.py` line 55](https://github.com/codepath/pathreview-ai301-fa26-s1/blob/f89c06fc3ff292df2a04a39ac51319d32a76b779/ingestion/parsers/readme_parser.py#L55)):
+
+```python
+match = re.match(r"^(#{1,6})\s+(.+)$", line)
 ```
