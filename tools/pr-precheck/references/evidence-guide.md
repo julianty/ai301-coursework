@@ -1,68 +1,65 @@
 # Evidence guide: where evidence lives in a PR package
 
-<!--
-THIS IS THE PART YOU WRITE (third week running: the map stays in your
-hands). Your tool uses this guide as its map: for every kind of
-evidence a rubric check names, this file says WHERE to find it in a PR
-package and WHAT GOOD LOOKS LIKE when you do.
-
-The four families below are the harness's failure categories under
-the names the eval README uses: plan fidelity = silent-drift, test
-evidence = not-tested, diff quality = unreviewable, standards and
-comms = standards-wall. A package that fails none of them is a
-clear-accept. Under each family heading below, write:
-
-- Where it lives: the exact places to look. In an eval bundle (which
-  section of the package: the plan-context block's scope pair and test
-  plan, the candidate PR's diff, commits, description, or
-  test-evidence section, the repo-facts block's template asks and
-  stated policy). In live mode (where in your working copy and on
-  GitHub: your plan.md and its deviation notes, your branch's diff,
-  your draft title and description, your captured test output, the
-  repo's PR template and CONTRIBUTING.md).
-- What good looks like: one or two sentences someone else could apply.
-  Prefer observable conditions ("every changed file falls inside the
-  plan's stated boundary or a deviation note") over adjectives ("the
-  diff is clean").
-
-A rubric check whose evidence this guide cannot locate is a check
-nobody else can execute, and this week that cuts three ways: your
-procedure says WHEN to gather each family, this guide says WHERE, and
-your SKILL.md says the tool reads both. Write the map you wish your
-executor had.
--->
-
 ## Plan fidelity (harness category: silent-drift)
 
-<!-- Where the plan states its scope, boundary, and deviation notes,
-and where the diff shows what actually changed. What it means for a
-diff to match the plan, for an honest deviation to re-tie a mismatch,
-and what silent drift looks like in each direction (more than the
-plan, or less with no note). The description's fidelity claims read
-against the diff live here too: a description claiming more or less
-than the diff delivers is silent drift, not a comms problem. -->
+**Where it lives.**
+- Eval mode: the plan-context block's scope pair (the files or boundary the
+  plan names) and its deviation notes. Read the candidate PR's unified diff
+  for the files and hunks actually changed. Read the candidate PR's
+  description for its claims about what the change does.
+- Live mode: `plan.md` in the working copy, in its scope list and its
+  deviation notes. Read `git diff main...HEAD` for the changed files. Read the
+  draft PR description for its claims.
+
+**What good looks like.** Every changed file falls inside the plan's stated
+scope, or is named in a deviation note. Every behavior the description says
+the change adds or fixes appears in the diff. Silent drift is either direction
+without a note: the diff does more than the plan, or the description claims
+more than the diff delivers. An honest deviation that is written down re-ties
+the mismatch and is not drift.
 
 ## Test evidence (harness category: not-tested)
 
-<!-- Where the PR shows its proof: the test-evidence section's
-before/after against the plan's test plan and the reproduction's own
-steps, and the outcome of the repo's own checks or suite. What
-decisive looks like (an observable behavior named, the expected-after
-stated, the checks' outcome visible) next to "tests pass". -->
+**Where it lives.**
+- Eval mode: the candidate PR's test-evidence section, read against the
+  plan-context block's test plan and the reproduction steps it built on.
+- Live mode: your captured test output, read against the test plan in
+  `plan.md`. The repo's own check commands are named in the repo's
+  CONTRIBUTING.md or README.
+
+**What good looks like.** Each behavior the test plan names has a test or a
+recorded run whose output shows it. Decisive evidence names the observable
+behavior, states the expected result after the change, and shows the actual
+output. "Tests pass" with no output, or output for a different test than the
+one named, is not evidence. The repo's standard checks were run on this branch,
+and their output is present. A skipped check is acceptable only if the
+description names the skip and the reason.
 
 ## Diff quality (harness category: unreviewable)
 
-<!-- Where the change itself lives: the unified diff and the commit
-list. What a reviewable change looks like (the fix visible, nothing
-unrelated riding along) and the debris tells: debug leftovers, dead
-code, commented-out blocks, formatting churn, drive-by edits. -->
+**Where it lives.** The candidate PR's unified diff and its commit list in
+eval mode. In live mode, `git diff main...HEAD` and `git log main..HEAD`.
+
+**What good looks like.** Every hunk serves the plan's change, and the fix is
+visible without scrolling through unrelated edits. Debris tells you the diff
+is not reviewable: debug output or print statements left in, commented-out
+code, stray files (editor backups, build output, notes), formatting churn in
+lines the change does not touch, and drive-by edits to other files. Each
+commit message names the change it contains.
 
 ## Standards and comms (harness category: standards-wall)
 
-<!-- Where the repo states its asks (the repo-facts block's PR
-template sections, contributing instructions, and stated policy,
-including AI-use disclosure) and where the PR honors them: the
-stated sections filled with real content, the disclosure present,
-explicit maintainer direction in the thread engaged. What compliant
-looks like next to boilerplate or a visibly ignored ask. (Whether
-the description's claims match the diff is plan fidelity, above.) -->
+**Where it lives.**
+- Eval mode: the repo-facts block's PR template sections, its contributing
+  instructions, and its stated policy, including any AI-use disclosure rule.
+  Read the candidate PR's description against those sections.
+- Live mode: the repo's PR template (`.github/pull_request_template.md` or
+  equivalent), its CONTRIBUTING.md, and its stated AI-use policy. Read your
+  draft description against them.
+
+**What good looks like.** Every template section has real content, or an
+explicit "not applicable" with a reason. Placeholder text left in a section is
+a failure. Any AI-use disclosure the policy asks for is present and says what
+was done with the AI tool. A shortfall the evidence shows is named in the
+disclosure section. Whether the description's claims match the diff is plan
+fidelity, not this family.

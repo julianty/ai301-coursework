@@ -14,46 +14,53 @@ label is not graded.
 ## Your pull request
 
 **Pull request**
-
-[Link to the pull request you opened. It must be the pull request's own page on the Path
-Review repo, not your fork's branch page.]
+https://github.com/codepath/pathreview-ai301-fa26-s1/pull/106
 
 **Branch**
-
-[The name of the branch the pull request comes from, exactly as it appears in your fork.
-The naming shape is a type prefix, then the issue number, then a short description. **The
-issue number in the branch name must be the number of the issue the pull request fixes** —
-a name carrying any other number does not satisfy this field.]
+fix/71-remove-heading-indent-in-test
 
 ## Eval iterations
 
-Answer all four sections. Quote source text directly; paraphrase does not satisfy these
-fields.
-
 **Run history**
 
-[The agreement score of each run you did, in order. A single run is a complete answer if
-only one run occurred. **The last score in your list must match the agreement line in the
-`eval-run.txt` you committed** — that file is the record of your final run.]
+1. Full run: `agreement: 16/20 scored items (bar: 18/20: below the bar)`
+   `categories: clear-accept 3/7 not-tested 4/4 silent-drift 4/4 standards-wall 2/2 unreviewable 3/3`
+2. Partial run with `--only pkg-08,pkg-13,pkg-16,pkg-19`: `agreement: 4/4 scored items`
+   `categories: clear-accept 4/4`. Partial runs do not decide the bar or the category floor.
+3. Full run, saved to `eval-run.txt`: `agreement: 20/20 scored items (bar: 18/20: PASS)`
+   `categories: clear-accept 7/7 not-tested 4/4 silent-drift 4/4 standards-wall 2/2 unreviewable 3/3`
 
 **Package analysis**
 
-[Pick one scored package (`pkg-01` through `pkg-20` — the four `calib-` packages are never
-scored). Name it by id, say what your rubric decided and what the gold label said, and
-explain why your rubric read it that way.]
+pkg-08 (`jesseduffield/lazygit#5883`, clear-accept, gold: accept).
+
+My rubric rejected it on two required checks: `test-evidence: claims are observable` and
+`repo-checks-run`. Both failures came from the same gap. The repro's before and after is a
+handwritten summary, not captured tool output. The control run, the integration test, and
+`go test ./...` are stated as results with no output. The original `test-evidence` pass condition
+said "Fails if a claimed result has no observable output," so the handwritten summary and the
+bare claims both failed. The gold label accepts the PR, so the original rubric read the evidence
+too strictly for this package.
 
 **Check rationale**
 
-[Quote one check from the `rubric.md` you uploaded to `tools/pr-precheck/`, exactly as it reads now.
-Then say why it reads that way — what you revised to get there, or what you rejected in
-favour of it.]
+Check: `repo-checks-run`. Current pass condition, exactly as written in `rubric.md`:
+
+```text
+Each check the repo's PR template or contributing docs names is stated as run and passing, with its result where the test evidence gives one. Recorded output is not required. Fails if a named check is not mentioned, or if it was skipped without the description saying so.
+```
+
+The original version required that the repo's checks were run and that "their output is recorded."
+pkg-08 stated its checks with results and no output, so the original version failed it. I
+revised the condition so a named check counts when it is stated as run and passing. Recorded
+output is no longer required. I rejected keeping the output requirement because the gold label
+accepts stated results for this package.
 
 **Trade-offs**
 
-[Every check gives something up. Any one of these is a complete answer: a package whose
-result it changes, a canary you re-ran with `--only`, a case you accept it will miss, or a
-stated reason nothing changed elsewhere. "Nothing changed, and here is how I know" earns
-the point in full when the reason follows.]
+This change lets `repo-checks-run` pass a claimed result that has no output behind it. The check
+reads the PR's own description and does not verify that the tests ran. A contributor can state a
+passing run without showing one, and this check would accept it.
 
 ---
 
