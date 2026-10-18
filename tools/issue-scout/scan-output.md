@@ -368,3 +368,78 @@ I haven't posted anything upstream. Whichever issue you pick, `scope.md` says to
   ], "verdict": "reject"}
 ]
 ```
+
+
+# Grade picks (2026-10-18): OpenImageIO#1901, maplibre-native#2888, frontend-app-authoring#2768
+
+**Direct mode.** I graded the three URLs independently and ranked the accepted ones by your fit profile. For each, the surfacing query is "direct" and there were no ranking signals.
+
+**Accepted, in fit order**
+
+1. **OpenImageIO #1901: BMP A/B channels swapped.**
+   - **Fit:** C++ and file-format parsing, which is self-contained logic. You can write a regression test by reading `input.bmp` and checking that R=G=B and A=1. OIIO has 2,387 stars (mid-size), a `good first issue` label, and recent releases (2026-10-15). Its tests are locally runnable.
+   - **Caveats:**
+     - The issue was filed in 2018, so the 1.8.9 report may be stale. Reproduce it on current master first.
+     - OIIO's AI policy (`docs/dev/AI_Policy.md`) allows AI assistants but requires an `Assisted-by:` line in commits and the PR. It also requires you to understand and be able to defend the code.
+2. **openedx/frontend-app-authoring #2768: remove the "Help URLs" API usage.**
+   - **Fit:** TypeScript/React, which you know, but it's mostly deletion and replacement rather than test-driven logic. The replacement API is already merged (PR #2730).
+   - **Caveats:**
+     - There is no GitHub release, so the preferred recency check fails.
+     - Open edX's AI policy permits Claude, with understanding and disclosure requirements.
+
+**Rejected**
+
+- **maplibre-native #2888: `shader_defines.hpp` to `enum class`.** It fails "Issue has no comments expressing interest". On 2026-08-11, Naveen-Attri (a contributor) asked "Do i have to change all of the enum…". They had no reply and no assignee, but the comment reads as intent to take the work. Strictly it isn't an "I'll take this" claim, so the call is a judgment. The rubric text is the thing to tighten if you want questions like this treated differently. Without that comment it would otherwise pass, and the maplibre AI policy only requires disclosure.
+
+```json
+[
+  {
+    "item": "https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/1901",
+    "checks": [
+      {"name": "Maintainers are active", "grade": "pass", "evidence": "lgritz authored 4 of last 5 commits, newest 2026-10-17"},
+      {"name": "Push is recent", "grade": "pass", "evidence": "pushedAt 2026-10-17"},
+      {"name": "Release is recent", "grade": "pass", "evidence": "latest release 2026-10-15"},
+      {"name": "Issue is good first issue", "grade": "pass", "evidence": "label 'good first issue' present"},
+      {"name": "Issue filed by a human", "grade": "pass", "evidence": "devernay, is_bot false"},
+      {"name": "Issue is one settled piece of work", "grade": "pass", "evidence": "single bug with stated expected behavior (R=G=B, A=1); no comments, no debate, no closed PRs in timeline"},
+      {"name": "Issue is unclaimed", "grade": "pass", "evidence": "assignees: []"},
+      {"name": "No open PR on the issue", "grade": "pass", "evidence": "timeline has no cross-referenced/connected PRs; no open BMP PR found"},
+      {"name": "Issue has no comments expressing interest", "grade": "pass", "evidence": "comments: []"},
+      {"name": "Contribution policy does not explicitly forbid AI usage", "grade": "pass", "evidence": "docs/dev/AI_Policy.md: 'Use of AI coding assistants is permitted', with disclosure conditions"}
+    ],
+    "verdict": "accept"
+  },
+  {
+    "item": "https://github.com/openedx/frontend-app-authoring/issues/2768",
+    "checks": [
+      {"name": "Maintainers are active", "grade": "pass", "evidence": "human commits (djoseph-apphelix, rpenido) 2026-10-14 to 2026-10-16"},
+      {"name": "Push is recent", "grade": "pass", "evidence": "pushedAt 2026-10-18"},
+      {"name": "Release is recent", "grade": "fail", "evidence": "no latest release reported by gh"},
+      {"name": "Issue is good first issue", "grade": "pass", "evidence": "label 'good first issue' present"},
+      {"name": "Issue filed by a human", "grade": "pass", "evidence": "bradenmacdonald, is_bot false"},
+      {"name": "Issue is one settled piece of work", "grade": "pass", "evidence": "'Remove all usage of the help URLs API… replace with external URLs API'; replacement PR #2730 merged"},
+      {"name": "Issue is unclaimed", "grade": "pass", "evidence": "assignees: []"},
+      {"name": "No open PR on the issue", "grade": "pass", "evidence": "PRs #2714 and #2730 mentioned are MERGED; no open PR targets this issue"},
+      {"name": "Issue has no comments expressing interest", "grade": "pass", "evidence": "comments: []"},
+      {"name": "Contribution policy does not explicitly forbid AI usage", "grade": "pass", "evidence": "openedx AI_POLICY.md welcomes Claude/OpenAI/Google/etc. tools, with understanding and disclosure conditions"}
+    ],
+    "verdict": "accept"
+  },
+  {
+    "item": "https://github.com/maplibre/maplibre-native/issues/2888",
+    "checks": [
+      {"name": "Maintainers are active", "grade": "pass", "evidence": "human commits (johncarmack1984, graysail, louwers) 2026-10-14 to 2026-10-16"},
+      {"name": "Push is recent", "grade": "pass", "evidence": "pushedAt 2026-10-17"},
+      {"name": "Release is recent", "grade": "pass", "evidence": "latest release 2026-10-15"},
+      {"name": "Issue is good first issue", "grade": "pass", "evidence": "label 'good first issue' present"},
+      {"name": "Issue filed by a human", "grade": "pass", "evidence": "louwers, is_bot false"},
+      {"name": "Issue is one settled piece of work", "grade": "pass", "evidence": "'Update shader_defines.hpp to use enum class'; no debate, no linked PRs"},
+      {"name": "Issue is unclaimed", "grade": "pass", "evidence": "assignees: []"},
+      {"name": "No open PR on the issue", "grade": "pass", "evidence": "no linked/mentioned PRs; no open PR found for shader_defines enum class"},
+      {"name": "Issue has no comments expressing interest", "grade": "fail", "evidence": "2026-08-11 Naveen-Attri: 'Do i have to change all of the enum or are there specific enum that needs to be changed' (unanswered, within 6 months; reads as intent to take it)"},
+      {"name": "Contribution policy does not explicitly forbid AI usage", "grade": "pass", "evidence": "CONTRIBUTING.md: 'do not let AI speak for you, verify… and disclose AI usage'; a condition, not a ban"}
+    ],
+    "verdict": "reject"
+  }
+]
+```
