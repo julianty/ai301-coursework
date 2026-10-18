@@ -55,10 +55,9 @@ happened; these entries are the toolkit's own timeline.
 All four entries are graded. Keep every heading below, and fill each
 one in the week it belongs to.
 
-**Unit 5: [one line on the tool work]**
+**Unit 5: Built the issue-scout with a three-field search strategy and tuned it over three scans**
 
-[2-4 sentences: what you built (the scout, your strategy), what broke
-or fell short, what changed because of it.]
+I wrote a search strategy of 15 `gh search issues` queries in three fields (computer vision, local models, and 9 pinned repos with 500+ stars), ranked the results by freshness, label and fewest comments, and had the scout grade the top candidates. The first scan failed on permissions, so 5 of 6 candidates were rejected for missing data, not on merit; I added `gh` allow rules and told the strategy to run each query as a single command. Even then the winners came from repos with 0 to 2 stars, because fewest-comments-first rewards places nobody visits, and the bigger-repo picks mostly failed on claim comments or open PRs, so I measured comments by repo size and added the pinned bigger-repos field, a 12-month age drop, backfill on reject, and `-linked:pr` on every query. Scan 3 accepted 5 issues, including stan-dev/math#3349 (842 stars), but the rubric still has no duplicate check and `-linked:pr` misses PRs that only mention an issue in text.
 
 **Unit 6: [one line on the tool work]**
 
