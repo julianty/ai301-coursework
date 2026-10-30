@@ -1,4 +1,4 @@
-# Contribution: [Issue Title]
+# Contribution: Misinterpretation of some BMP files (A and B channels swapped?)
 
 Path: `beat-2-contribution/contribution-story.md`
 
@@ -8,10 +8,9 @@ format criteria grade exactly that. Your course repo link is the whole submissio
 files and no evidence uploads are part of Assignment 5.
 
 **Contribution Number:** [1]
-**Student:** [Student name]
-**GitHub Username:** [your GitHub username, exactly as it appears on your profile - no @, no
-profile URL. Your comments upstream are identified by this name.]
-**Issue:** [GitHub issue link]
+**Student:** Alexander Julian Ty
+**GitHub Username:** julianty
+**Issue:** https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/1901
 **Pull Request:** [GitHub PR link, once opened]
 
 One repository, built across units 5 to 8, telling the whole story of your real
@@ -59,11 +58,14 @@ one in the week it belongs to.
 
 I wrote a search strategy of 15 `gh search issues` queries in three fields (computer vision, local models, and 9 pinned repos with 500+ stars), ranked the results by freshness, label and fewest comments, and had the scout grade the top candidates. The first scan failed on permissions, so 5 of 6 candidates were rejected for missing data, not on merit; I added `gh` allow rules and told the strategy to run each query as a single command. Even then the winners came from repos with 0 to 2 stars, because fewest-comments-first rewards places nobody visits, and the bigger-repo picks mostly failed on claim comments or open PRs, so I measured comments by repo size and added the pinned bigger-repos field, a 12-month age drop, backfill on reject, and `-linked:pr` on every query. Scan 3 accepted 5 issues, including stan-dev/math#3349 (842 stars), but the rubric still has no duplicate check and `-linked:pr` misses PRs that only mention an issue in text.
 
-**Unit 6: [one line on the tool work]**
+**Unit 6: Installed the voice guard and wrote a repo memory file for OpenImageIO**
 
-[2-4 sentences: the voice-guard, the repo-memory file. What broke or
-fell short, and what changed because of it. "Nothing broke" counts when
-it is true - say how you know.]
+My voice guide has an Upstream section that checks my Github CLI commands and is wired as a hook
+on Bash commands. Claude ran a wiring test and stopped `gh issue comment --help` (on purpose) and passed
+my claim comment on OpenImageIO#1901 today (10/23/26). The guard only sees Claude Code runs, so it doesn't
+check anything I write on the browser. I rewrote the claim draft myself after running /repro-check
+since it flagged my claim comment as including the repro. I cloned the repo and Claude has a memory file
+with the repo's `AGENTS.md`, AI policy for context. It's excluded via `.git/info/exclude`.
 
 **Unit 7: [one line on the tool work]**
 
@@ -79,24 +81,20 @@ drafted, what you did with the draft.]
 
 ## Why I Chose This Issue
 
-[1-2 paragraphs in your own words: how you searched, what your scan
-surfaced, what your scout's verdict said, why this issue fits your
-profile, and what you hope to learn. If your scout's verdict on it
-was reject and you chose it anyway, say so here and say why; choosing
-against your own tool silently is what loses points. Close with an
-honest read of the tool itself: where the scout fell short on a real
-wild search and what you changed or would change, or what convinced
-you it held up. **Record the link to your claim comment in this section too.**
-Not claimed yet? Write `claim pending` and today's date where the link goes,
-and add the link the moment your claim lands.]
+I got this issue from the Issue Selection site and graded it with my issue-scout in direct mode, not from a scan. The scout accepted OpenImageIO#1901 and frontend-app-authoring#2768 and rejected maplibre-native#2888 because a contributor had asked a scoping question in August that nobody answered. I re-graded all three on 2026-10-22 after replacing my scope check with the staff `scope-feasible` check. #1901 was accepted again with a difficulty note of moderate: the bug is one reproducible problem with a test file attached, but I have to find the BMP reader myself.
+
+It fits me because it is C++ image I/O with a file I can test against, and the fix can be proved with a regression test, which is the skill I wanted to practice. The report is from 2018, so the first thing I did was check it still happens: on OIIO 3.2.1.3 it does, and it is wider than the title says (see Reproduction Process). I hope to learn how a file-format reader is tested in a large project and how a maintainer wants a bug like this fixed.
+
+The scout flagged something its rubric cannot grade: OIIO's AI policy "discourages use of AI tools to fix GitHub issues labeled as 'good first issue'", and #1901 has that label. I chose it anyway and said so in my claim: Claude Code only helps me read the code and learn, and I write the fix and the test myself, with an `Assisted-by:` line on anything it helped with. The scout's other limit was that its checks ran on release data and the thread at grading time; it could not tell me that the title's "A and B swapped" was incomplete, which I found by running the file.
+
+Claim comment: https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/1901#issuecomment-6375543695 (posted 2026-10-23)
 
 **Toolkit**
 
-- Tool: issue-scout (your scout: your search strategy, your rubric),
-  and how you used it
-- What it produced: [the scan and its verdict on this issue, described]
-- Difficulties: [where it fell short, or "none met" if none did]
-- What changed: [what you patched or would update, or "nothing"]
+- Tool: issue-scout, run in direct mode on three Issue Selection picks, with my rubric patched on 2026-10-22 (my unit-1 scope check replaced by the staff `scope-feasible` row, plus a difficulty note)
+- What it produced: accept for #1901 (difficulty: moderate) and #2768, reject for maplibre-native#2888 on an interest comment; a policy note on OIIO's AI conditions
+- Difficulties: the scout cannot judge fit or skill, treats "no release on GitHub" as a failure for projects that publish elsewhere (openedx), and its checks did not surface the AI policy's good-first-issue discouragement as a check; it appeared only as an aside
+- What changed: the scope check now accepts issues with open design edges and raises a difficulty note instead; I read the thread and `CONTRIBUTING.md` myself before choosing. Not changed: the policy gap (I would add a "policy discourages AI on this label" line to the rubric if I scan again)
 
 ---
 
@@ -131,31 +129,29 @@ and add the link the moment your claim lands.]
 
 **Environment Setup**
 
-[What a stranger would need to stand this up: your operating system,
-the relevant versions (language, runtime, package manager, the project
-itself), and how you set the project up. Then the challenges you faced
-and how you solved them, or that none came up.]
+Windows 11 Home 10.0.26200, Python 3.11.8 in a venv, OpenImageIO 3.2.1.3 from the PyPI wheel (`pip install OpenImageIO pillow numpy`; Pillow 13.0.0, numpy 2.4.6). I forked and cloned the repo (clone at `main`, fde6512, 2026-10-22) but did not build it for the reproduction: the full build needs dependencies I had not set up on Windows, so every run in this section uses the released wheel. Challenges: none with the install. I compared `src/bmp.imageio/` between my `main` and `upstream/main` (43b3d649d) to see whether the reader changed: it did not, and it is unchanged since tag v3.2.1.2.
 
 **Steps to Reproduce**
 
-1. [Step 1]
-2. [Step 2]
-3. [Observed result]
+1. Create a venv and run `pip install OpenImageIO pillow numpy`.
+2. Download the issue's file: `curl.exe -L -o input.bmp https://raw.githubusercontent.com/NatronGitHub/Natron-Tests/master/TestImageBMP/input.bmp` (262282 bytes, SHA-256 `49CBF792C41099DD61E38DDAE0A45504A4B5178531402965E0A8A8885254C91B`).
+3. Read the header: it is a 124-byte BITMAPV5HEADER, 32 bits per pixel, compression 3 (BI_BITFIELDS), with masks red `0xff000000`, green `0x00ff0000`, blue `0x0000ff00`, alpha `0x000000ff` (bytes stored A, B, G, R).
+4. Read the file with OIIO (`oiio.ImageBuf("input.bmp").get_pixels(oiio.UINT8)`) and with Pillow (`.convert("RGBA")`) and compare channels with `np.array_equal`.
+5. Observed result: OIIO's blue is only 255 and its alpha varies; Pillow's alpha is only 255. OIIO's blue equals Pillow's alpha and OIIO's alpha equals Pillow's blue exactly, and OIIO's red and green do not match Pillow's either.
+6. After lgritz asked for a test where R, G, B and A all differ in every pixel, I kept the header of `input.bmp` and filled every pixel with R=10, G=50, B=100, A=200 (`distinct.bmp`). Observed result: OIIO reads R=50, G=100, B=200, A=10 (the file read as G,B,A,R); Pillow reads 10, 50, 100, 200.
 
 **Reproduction Evidence**
 
-- **Commit showing reproduction:** [link to commit in your fork]
-- **Screenshots/logs:** [if applicable]
-- **My findings:** [what you discovered during reproduction; an
-  honest, evidenced cannot-reproduce that led you to re-pick or ask
-  the maintainer belongs here and costs you nothing]
+- **Commit showing reproduction:** none; the reproduction runs against the released wheel, and the scripts are in my comments on the issue.
+- **Screenshots/logs:** first run, posted with my claim: https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/1901#issuecomment-6375543695. Distinct-pixel test, posted 2026-10-24: https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/1901#issuecomment-6380706774. Key lines: `OIIO unique per channel: [[0..5], [0..5], [255], [0..5]]` against `Pillow unique per channel: [[0..5], [0..5], [0..5], [255]]`; `OIIO output == raw bytes with bytes 0 and 2 swapped: True`; `Pillow == decode using the header masks: True`; for `distinct.bmp`, `OIIO unique per channel: [[50], [100], [200], [10]]` against `Pillow unique per channel: [[10], [50], [100], [200]]`. A control file with the default 32-bit layout reads all four channels correctly.
+- **My findings:** reproduced on 3.2.1.3 (not on `main`, which I did not build). The issue title says A and B are swapped; the full comparison shows all four channels are wrong, because `bmpinput.cpp` handles every 24- and 32-bit file by swapping bytes 0 and 2 (assuming B,G,R,A order) and ignores the channel masks, while this file's masks say the bytes are A,B,G,R. Swapping bytes 0 and 2 of A,B,G,R gives G,B,A,R, which is exactly what the distinct-pixel test shows. lgritz suspected "a deeper problem is lurking", and the distinct-pixel test confirmed it.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: repro-check, graded on the claim and the report together
+- What it produced: accept on all ten checks, with three fixes: open the report by correcting the claim, paste the missing scripts, and say I used Python and `oiiotool` instead of `iconvert`
+- Difficulties: it could not read my voice guide in a non-interactive run (blocked by file permissions), so it did not check the drafts against it; it is also a grader of my report's form and cannot tell me the reproduction is complete
+- What changed: I added the three scripts and an `oiiotool` step to the report (the wheel ships `oiiotool` and `maketx` but not `iconvert`, which I checked in the venv instead of assuming)
 
 ---
 
