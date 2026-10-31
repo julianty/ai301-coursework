@@ -119,10 +119,10 @@ I created a file `distinct.bmp` with the headers matching `input.bmp`. It is an 
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: Claude Code, used only to explain code: how `read_header` reads the header field by field with `fread`, the difference between V3/V4/V5 headers, and what compression 3 (`BI_BITFIELDS`) means
+- What it produced: explanations of `bmp_pvt.cpp` and `bmpinput.cpp`, and a header dump of the 32-bit test files showing `g32bf.bmp` is a V3, 32-bit, `BI_BITFIELDS` file and `g32def.bmp` is V3 with compression 0
+- Difficulties: I misread things that took several rounds to clear up: I thought `WINDOWS_V3` meant 16 bpp and that compression 3 meant the masks were non-default (it means "use the masks"), and my first draft blamed `BmpInput::open`. Claude's header dump also printed an alpha mask of `0x0` for `g32bf.bmp`, which is not a real mask (V3 has only three), so I had to check its output against the code
+- What changed: I followed the masks myself from `read_header` to `read_native_scanline`, which moved the cause to `read_native_scanline`, made me describe `input.bmp` as a valid file whose masks the reader ignores, and turned up the V3 32-bit case that set my scope
 
 ---
 
@@ -215,10 +215,10 @@ Deviations: none yet (plan accepted by plan-check on 2026-10-31).
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: plan-check, run live on my `plan.md` and a draft plan comment for #1901. Claude drafted the first version of the comment from my plan, and I rewrote it
+- What it produced: accept, with all five required checks passing (grounded-diagnosis, bounded-scope, buildable-plan, thread-aware-comment, ai-policy-compliance). It failed two preferred checks: honest-certainty, because my comment said opaque alpha matches "the default behavior for other programs" with no evidence, and template-asks, because my repro has no `oiiotool --buildinfo` output and no minimal image
+- Difficulties: before plan-check, the plan had errors I fixed while reviewing it: a `compression == 3` condition alone would have broken `g32bf.bmp`, "V5 only" left out V4, and my reason for excluding V3 was wrong. My own procedure has no check that the comment matches the plan, so my comment leaving out the V3 scope did not affect the verdict. The skill's `voice-guide.md` is only a pointer to the real file in `~/.claude/voice-guard/`
+- What changed: the plan now requires a V4/V5 header, gives the right V3 reason, sets an alpha rule, and lists what it won't change. I would add a cause sentence and the V3 scope to the comment and turn the alpha claim into a question before posting, and add a "comment matches the plan's scope" line to my thread-aware-comment check
 
 ---
 
