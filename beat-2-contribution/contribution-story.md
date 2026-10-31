@@ -102,19 +102,20 @@ Claim comment: https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/1
 
 **Problem Description**
 
-[In your own words, what is broken or missing?]
+Files that are 32-bit color encoded with color masks that do not match the default (ARGB) have their channels read incorrectly.
 
 **Expected Behavior**
 
-[What should happen?]
+I created a file `distinct.bmp` with the headers matching `input.bmp`. It is an image, 256x256, filled with this exact pixel value: `(R,G,B,A) = (10, 50, 100, 200)`.
+`distinct.bmp` should be read as R=10, G=50, B=100, A=200, matching Pillow.
 
 **Current Behavior**
 
-[What actually happens?]
+`distinct.bmp` is being read as R=50, G=100, B=200, A=10. This swap is more than a simple A, B channel swap. The channels are being read as GBAR.
 
 **Affected Components**
 
-[Which parts of the codebase are involved?]
+`src/bmp.imageio/bmpinput.cpp` (Ingests bmp) `src/bmp.imageio/bmp_pvt.cpp` (Reads headers)
 
 **Toolkit**
 
@@ -159,22 +160,58 @@ Windows 11 Home 10.0.26200, Python 3.11.8 in a venv, OpenImageIO 3.2.1.3 from th
 
 **Analysis**
 
-[Your analysis of the root cause: what is causing the issue, traced
-to the files and functions involved.]
+The masks are read by `DibInformationHeader::read_header` in `bmp_pvt.cpp`. They are applied in the 16-bit image case, but are unused in the 32-bit image case.
+In the function `BmpInput::read_native_scanline` in `bmpinput.cpp`, the pixel values are read in. As a 32-bit image, the byte order
+on disk expected by the function is BGRA (little-endian storage of ARGB). The function wants to reorder this into
+RGBA, so the 0th and 2nd bytes of each pixel are swapped. This achieves RGBA for typical images.
+In our case, `input.bmp`, `read_native_scanline` produces GBAR from ABGR (ABGR because of little-endian storage of RGBA).
+After the swap, the function returns. It does not use the bit shifts that were computed in `BmpInput::open`.
+`BmpInput::open` only computes the shifts for three channels, thus the arrays `m_right_shifts` and `m_bit_counts` have 3 entries for the RGB channels.
 
 **Proposed Solution**
 
-[High-level description of your fix approach, and what you are
-deliberately NOT changing.]
+The `read_native_scanline` path for 32-bit images should pass through a mask read and shift if the `compression` header value is 3. This indicates that color masks describe which channel is encoded in the 32-bit number.
+The `compression` value of the header is read in `DibInformationHeader::read_header`, so it's accessible in `bmpinput.cpp` already as `m_dib_header.compression`.
+The solution would involve changing the mask computations in `BmpInput::open` to include the alpha channel.
+An additional condition would live in `BmpInput::read_native_scanline` for the 32-bit case that checks the header compression.
+If `compression == 3`, 32-bit, and the header is `WINDOWS_V5 || WINDOWS_V4`, apply the four masks.
+The condition `WINDOWS_V5 || WINDOWS_V4` is necessary because for a 32-bit `WINDOWS_V3` file `read_header` reads no masks at all (see below), so they would be zero and `open()` would fill in the 16-bit defaults.
+If `alpha_mask` is 0, the file has no alpha channel, so alpha is set to fully opaque (255).
+
+**What I Won't Change**
+
+I chose not to change `bmp_pvt.cpp`, where `DibInformationHeader::read_header` lives.
+It controls the header variables that are made available in `bmpinput.cpp`.
+In its current state, it provides enough information to complete this fix, but uncovers a possible other issue.
+BMP files that use `WINDOWS_V3`, and have `compression == 3` may need their color masks.
+The current state of `bmp_pvt.cpp`, a 32-bit image using `WINDOWS_V3` will not read any color masks even with the
+`compression == 3` header.
+V3 32-bit files keep the old byte swap, so one with non-default masks will still be misread.
+I could open another issue to address this problem if desired.
+Compression 0, 24-bit, 16-bit, palette/RLE files and the BMP writer are untouched.
 
 **Implementation Plan**
 
-1. [Modify file X to do Y]
-2. [Add or change Z]
-3. [Update tests]
+1. Changes in `BmpInput::open()`
+   Include the alpha channel when computing `m_right_shifts` and `m_bit_counts`
 
-[Record deviations here as they happen: what changed mid-build and
-why. A recorded deviation is honest work; silent drift is not.]
+2. Changes in `BmpInput::read_native_scanline()`
+   Add a condition check nested in the `m_dib_header.bpp == 32` path for `m_dib_header.compression == 3` and a `WINDOWS_V4` or `WINDOWS_V5` header
+   Use the computed shifts in `open()` to shift the color data similar to how `.bpp == 16` implements it.
+
+3. Create a test image with `WINDOWS_V5` headers, `compression = 3`, and color masks similar to `input.bmp`. Only a few pixels, saved in `testsuite/bmp/src/`
+
+4. Add it to `testsuite/bmp/run.py` and generate new `ref/out.txt`
+
+5. Confirm the build reads it as R=10, G=50, B=100, A=200
+
+6. Run the full BMP test, and confirm the `g32bf` and `g32def` hashes are unchanged
+
+7. Re-run the reproduction on `distinct.bmp` with the branch build before and after
+
+8. clang-format, then commit with -s, a `fix(bmp):` subject, and Assisted-by: line.
+
+Deviations: none yet (plan accepted by plan-check on 2026-10-31).
 
 **Toolkit**
 
