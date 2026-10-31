@@ -240,16 +240,15 @@ observable named is not a strategy.]
 
 ## Implementation Notes
 
-[A running log, added to as you work. Date each entry. What you
-built, decisions you made when you made them, wrong turns included.]
+**2026-10-30**
 
-**[Date]**
+Set up a local build so I could test a fix, not just the released wheel. I installed OIIO's dependencies through MSYS2 (OpenEXR, Imath, libtiff, libjpeg-turbo, libpng, zlib, fmt, robin-map, OpenColorIO) and built with Ninja and g++, with Python bindings and most optional formats turned off. Three things fought me: `main` doesn't compile under MinGW with warnings as errors (unused `decode_utf8`/`encode_utf8` in `src/libutil/strutil.cpp`, unrelated to BMP), so I built with `-DSTOP_ON_WARNING=OFF`; the testsuite needs a Windows CPython, because MSYS2's Python writes `../..` paths that `cmd.exe` can't run; and `runtest.py` calls `tr` and `diff`, so `C:\msys64\usr\bin` has to be on PATH. After that, `ctest --test-dir build -R bmp` passes on `main` (fde6512). My build of `main` also reads `distinct.bmp` as `50 100 200 10` (`oiiotool --printstats`), so the bug is confirmed on current `main`, not just on 3.2.1.3.
 
-[Entry]
+**2026-10-31**
 
-**[Date]**
+Plan accepted by plan-check. Chose option (b): use the masks only for 32-bit `BI_BITFIELDS` files with V4/V5 headers and leave `read_header` alone, because a 32-bit V3 file's masks are never read and `g32bf.bmp` (V3, 32-bit, bitfields) has to keep passing. Decided not to touch the default-mask block in `open()` for alpha: a zero alpha mask means "no alpha", and adding it to that condition would overwrite the real masks of 16-bit bitfields files like `g16bf565.bmp`.
 
-[Entry]
+Step 1 (commit `90a2a3c2b` on `fix/1901-bmp-bitfields`): widened `m_right_shifts` and `m_bit_counts` from 3 to 4 entries and added a `calc_shifts` call for `alpha_mask` in `BmpInput::open`. The BMP test still passes and clang-format 22 is clean, as expected, since nothing reads the alpha slot yet.
 
 **Toolkit**
 
