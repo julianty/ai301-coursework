@@ -11,7 +11,7 @@ files and no evidence uploads are part of Assignment 5.
 **Student:** Alexander Julian Ty
 **GitHub Username:** julianty
 **Issue:** https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/1901
-**Pull Request:** [GitHub PR link, once opened]
+**Pull Request:** https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5650
 
 One repository, built across units 5 to 8, telling the whole story of your real
 contribution. Fill it as you work, not at the end — the sections below ask for evidence that
@@ -67,10 +67,9 @@ check anything I write on the browser. I rewrote the claim draft myself after ru
 since it flagged my claim comment as including the repro. I cloned the repo and Claude has a memory file
 with the repo's `AGENTS.md`, AI policy for context. It's excluded via `.git/info/exclude`.
 
-**Unit 7: [one line on the tool work]**
+**Unit 7: Installed the ship-gate, wrote a two-row manifest, and patched the hook for PowerShell**
 
-[2-4 sentences: the ship-gate and your gate manifest. What it produced
-on your real branch, what fought you, what changed because of it.]
+My manifest has two must-pass rows, a build plus the BMP ctest and a clang-format 22 dry-run on the BMP plugin files. It also lists three excluded checks with dated reasons: the full testsuite, the repo-wide format script and the `-Werror` build. The hook test `gh pr create --help` went through without stopping, because Claude Code on my machine runs PowerShell and both the ship-gate and voice guard hooks only matched the Bash tool. I changed the matchers to `Bash|PowerShell` and the tool-name checks in both scripts, and after that the test stopped as expected. The gate runs manifest rows through cmd.exe, so the rows use cmd syntax. On 10/31/26 it passed my real branch: both rows ok, and all seven required pr-precheck checks passed. It still flagged things I fixed in `pr_draft.md`: "One test failed" when it was one CI job, a CI claim it couldn't verify (I checked the run myself), and no sentence saying what Claude did beyond the `Assisted-by:` line.
 
 **Unit 8: [one line on the tool work]**
 
@@ -211,7 +210,7 @@ Compression 0, 24-bit, 16-bit, palette/RLE files and the BMP writer are untouche
 
 8. clang-format, then commit with -s, a `fix(bmp):` subject, and Assisted-by: line.
 
-Deviations: none yet (plan accepted by plan-check on 2026-10-31).
+Deviations (plan accepted by plan-check on 2026-10-31): step 3 made two test files instead of one, adding a no-alpha case to cover the alpha rule. The test files use their own pixel values, so step 5's `10 50 100 200` check was done on `distinct.bmp`.
 
 **Toolkit**
 
@@ -224,17 +223,24 @@ Deviations: none yet (plan accepted by plan-check on 2026-10-31).
 
 ## Testing Strategy
 
-[What observable checks prove the fix: your reproduction steps re-run
-against the built change (before and after), and the repo's own test
-suite or checks with the outcome shown. "Tests pass" with nothing
-observable named is not a strategy.]
+I test the fix by building twice from the same build directory: once on unmodified `main` (`fde6512a2`), once on my branch (`d3a477cd9`). Then I read the same files with each `oiiotool`. Every input has a different value in each channel, so a channel swap can't hide behind equal values. The full output is in `test_evidence.md` in my clone.
+
+**The reproduction, before and after.** `distinct.bmp` is the issue's `input.bmp` with every pixel set to R=10 G=50 B=100 A=200. `oiiotool --printstats` gives `50 100 200 10` on `main` and `10 50 100 200` on my branch. A copy with the alpha mask set to 0 gives `50 100 200 10` on `main` and `10 50 100 255` on my branch, which checks the "no alpha mask means opaque" rule.
+
+**The regression test.** The two new 2x2 files in `testsuite/bmp/src/` (`g32bf-rgba-v5.bmp` and `g32bf-noalpha-v5.bmp`) read with rotated channels on `main` and with the values I wrote on my branch (`oiiotool --dumpdata`). Pillow 13 agrees with my branch. They're now in `testsuite/bmp/run.py`, so the reference output records their pixel hashes, and the test fails if the decode ever changes.
+
+**The control.** The main risk of the fix is changing how other BMPs decode, especially `g32bf.bmp`, a 32-bit bitfields file with a V3 header that has to keep the old path. The regenerated `ref/out.txt` adds 22 lines and removes none, so every existing file in the BMP test, including `g32bf.bmp` and `g32def.bmp`, gives the same output and SHA-1 as on `main`.
+
+**The repo's checks.** `ctest --test-dir build -R bmp` passes, and clang-format 22.1.8 (CI's version) reports nothing on the BMP plugin files. I don't run the full testsuite (my local build has most optional formats off), the `-Werror` build (`main` fails it on MinGW for an unrelated file), or Linux/macOS locally. CI on my fork covered those (27 of 28 jobs passed, see the Toolkit below), and upstream CI will run them again on the PR. The ship manifest lists these exclusions with dates.
+
+**What the tests don't cover.** 32-bit bitfields files with a V3 header and non-default masks are still misread. That's out of scope by the plan, and the evidence says so instead of hiding it.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: my local `oiiotool` builds of `main` and of my branch for before/after reads, Pillow and the unfixed PyPI wheel to check the test files independently, `ctest` for the BMP test, and CI on my fork (GitHub Actions) for the full testsuite. Claude ran the builds and captured the output into `test_evidence.md`.
+- What it produced: before/after values for `distinct.bmp` (`50 100 200 10` -> `10 50 100 200`) and for both new test files, a `ref/out.txt` diff of +22/-0, and a fork CI run where 27 of 28 jobs passed (run 41219941633).
+- Difficulties: the fork had Actions turned off, so the first push ran nothing. The one failing CI job (`MacOS-15-ARM` py3.13) failed on 14 Python tests with `No module named 'numpy'`, and I had to check that it wasn't my change. The system Python had no Pillow, so the cross-check ran from the clone's `.venv`.
+- What changed: I enabled Actions on the fork and started the workflow by hand. I compared the failing job with upstream `main`'s runs, where the same job fails the same way at `0008a6f04`, and the BMP test passed in that job. So I ticked the CI box under the template's "unrelated failures" exception and explained it in the PR description.
 
 ---
 
@@ -248,40 +254,46 @@ Set up a local build so I could test a fix, not just the released wheel. I insta
 
 Plan accepted by plan-check. Chose option (b): use the masks only for 32-bit `BI_BITFIELDS` files with V4/V5 headers and leave `read_header` alone, because a 32-bit V3 file's masks are never read and `g32bf.bmp` (V3, 32-bit, bitfields) has to keep passing. Decided not to touch the default-mask block in `open()` for alpha: a zero alpha mask means "no alpha", and adding it to that condition would overwrite the real masks of 16-bit bitfields files like `g16bf565.bmp`.
 
-Step 1 (commit `90a2a3c2b` on `fix/1901-bmp-bitfields`): widened `m_right_shifts` and `m_bit_counts` from 3 to 4 entries and added a `calc_shifts` call for `alpha_mask` in `BmpInput::open`. The BMP test still passes and clang-format 22 is clean, as expected, since nothing reads the alpha slot yet.
+Step 1 (commit `44c4987ef` on `fix/1901-bmp-bitfields`): widened `m_right_shifts` and `m_bit_counts` from 3 to 4 entries and added a `calc_shifts` call for `alpha_mask` in `BmpInput::open`. The BMP test still passes and clang-format 22 is clean, as expected, since nothing reads the alpha slot yet.
+
+Step 2 (commit `b80389108`): added a branch at the top of the 32-bit path in `read_native_scanline`, taken only when `bpp == 32`, `compression == 3` and the header is V4 or V5. It reads each pixel as a `uint32_t`, masks and shifts out each channel with the shifts from step 1, and scales it to 8 bits with `bit_range_convert`, the same helper the 16-bit path uses. Two wrong turns: my first version had no `return true` at the end of the new branch, so it fell through into the old byte-swap code and the output was still wrong; and I first ran alpha through `bit_range_convert` like the other channels, which gives 0 (fully transparent) when the alpha mask is 0 because the bit count is 0. I added an explicit `alpha_mask == 0` case that writes 255. After that, my build reads `distinct.bmp` as `10 50 100 200` (it was `50 100 200 10`), a copy with the alpha mask zeroed reads alpha 255, the BMP test still passes, and clang-format 22 is clean.
+
+Steps 3 to 6 (commit `d3a477cd9`): wrote a throwaway Python script with `struct.pack` that builds two 2x2 V5 bitfields files from scratch, `g32bf-rgba-v5.bmp` (masks R `ff000000`, G `ff0000`, B `ff00`, A `ff`) and `g32bf-noalpha-v5.bmp` (alpha mask 0, junk in the low byte). Every pixel and channel has a different value, so a channel swap or a flipped row would show. Getting the headers right took a few drafts: wrong value counts for the `struct` formats, a file size that left out the 14-byte file header, and a pixel offset that pointed at the header length instead of 138. Pillow, my build and the unfixed 3.2 wheel then agree on the file contents and disagree on the decode: Pillow and my build read `(0,0)` as `11 61 121 201`, and the wheel reads `61 121 201 11`. Pillow opens the no-alpha file as RGB (3 channels), while OIIO reports 4 channels with alpha 255, which is the rule I chose in the plan. I added both files to `testsuite/bmp/run.py` with `rw_command("src", ...)`; I first put them in the `files` list, which reads from the downloaded bmpsuite folder, not `src/`. The new reference output only adds 22 lines and removes none, so `g32bf.bmp`, `g32def.bmp` and every other existing file read exactly as before. One Windows trap: the first run kept saying my new files didn't exist, even after reconfiguring. `runtest.py` copies `src/` and `ref/` into `build/testsuite/bmp/` only if they aren't there yet (other platforms use symlinks), so I had to delete the stale copies after adding files or changing the reference.
+
+**2026-11-03**
+
+Opened the PR. One wrong turn while rewriting the PR description: I ran `ctest --test-dir build -R bmp` from PowerShell and it failed, with the whole output shown as added lines. My fix was fine; the PowerShell session didn't have `C:\msys64\usr\bin` on PATH, so `runtest.py` couldn't run `diff` and `tr` to compare against the reference. The same trap from 10/30, in a new shell. With `C:\msys64\ucrt64\bin;C:\msys64\usr\bin` added to PATH, it passed (1/1).
+
+Disclosure: another session told me I could leave `Assisted-by:` off the fix commits because I wrote the code. After reading `AI_Policy.md` again I added it to all three commits (before pushing), because the policy requires it when an AI "helped design the approach" or "suggested the specific fix", and my claim on #1901 promised the line on any commit Claude helped with.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: Claude Code as a navigator. It explained `bmpinput.cpp`, the BMP header layouts and `struct.pack` syntax, and reviewed each of my drafts. I wrote the C++ change, the test script and `run.py` by hand, as my claim on #1901 promised. Claude ran the builds, the BMP test and clang-format, regenerated `ref/out.txt` (a generated file), and did the `Assisted-by:` rebase.
+- What it produced: three commits on `fix/1901-bmp-bitfields` (`44c4987ef`, `b80389108`, `d3a477cd9`), each with `Signed-off-by` and `Assisted-by: Claude Code / Claude Opus 5.5`.
+- Difficulties: two times I asked Claude to write text that goes upstream (a commit body and my issue comment). It declined and gave line-by-line notes instead, because of the boundary I'd set. Two sessions also disagreed about whether `Assisted-by:` was needed on code I typed myself.
+- What changed: I wrote both texts myself from the notes. I settled the `Assisted-by:` question by reading `AI_Policy.md` directly instead of trusting either session, and added the line to all three commits before pushing.
 
 ---
 
 ## Pull Request
 
-**PR Link:** [GitHub PR URL when opened]
+**PR Link:** https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5650 (opened 2026-11-03)
 
-**PR Description:** [what the PR says; much of the content above
-adapts into it]
+**PR Description:** Title `fix(bmp): decode 32-bit BI_BITFIELDS pixels with the channel masks`, three commits (`44c4987ef`, `b80389108`, `d3a477cd9`). The description opens with "Fixes #1901" and says what changed: `open()` now computes the shift and bit count for the alpha mask, and `read_native_scanline` decodes 32-bit `BI_BITFIELDS` pixels with the four masks when the header is V4 or V5; a zero alpha mask gives alpha 255. It states the scope limit (V3 32-bit files keep the old byte swap, since fixing them means changing `bmp_pvt.cpp`), lists the two new test files and what each checks, and says `ref/out.txt` only gains lines. It has the `Assisted-by: Claude Code / Claude Opus 5.5` line plus a sentence on what Claude did (reviewed my changes, checked my test-file headers) and what I did (wrote the fix and the generator script, ran the bmp test). The CI checklist note links my fork run, names the one failing job, and explains why it is unrelated (missing numpy, same failure on upstream `main` at `0008a6f04`, bmp test passed in that job).
 
 **Maintainer Feedback:**
 
-- [Date]: [feedback received, or "none yet"; silence is a normal
-  state and costs you nothing]
-- [Date]: [how you addressed it]
+- 2026-11-03: none yet from maintainers. The EasyCLA bot commented within a minute that my commits weren't covered by a signed CLA, and its check failed. I signed the Individual CLA, and after a recheck the bot showed "EasyCLA check passed". DCO passed from the start because every commit has `Signed-off-by`.
+- 2026-11-03: the CI workflows haven't started on the PR yet; as a first-time contributor, a maintainer may need to approve the run.
 
-**Status:** [Awaiting review / Iterating / Merged / Closed. The
-status is a fact you record, never a grade: the PR is graded as
-opened.]
+**Status:** Awaiting review
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: ship-gate (my two-row manifest plus pr-precheck in live mode) and the voice guard, both firing as hooks when Claude ran `gh pr create` with `--body-file pr_draft.md`.
+- What it produced: on the first try the voice guard stopped the post on "Claude then reviewed the behavior and tested it" and "BMP test passes locally" with no command named. On the second try the ship-gate ran both manifest rows (ok) and then rejected the branch: pr-precheck said the test evidence listed the full suite and Linux/macOS as "left to upstream CI" and the description didn't disclose that. On the third try the gate passed and the voice guard stopped a new line that reported test results Claude got, not me. The fourth try opened PR #5650.
+- Difficulties: the voice guard is graded by a model, and it passed my draft in manual mode (`check_voice.py --draft`) and then stopped a nearly identical draft as a hook minutes later. The gate's reject came from `test_evidence.md`, which was written before my fork CI run and was out of date, not from anything wrong in the PR. The gate had accepted the same branch with an earlier version of the draft in a manual run that morning, so its verdict changed with no change to the code.
+- What changed: Claude updated `test_evidence.md` with the fork CI run. I rewrote the disclosure line so it says what I ran myself, after running the bmp test with the MSYS2 PATH fix. I would make the gate's evidence file part of the branch-ready checklist (refresh it after CI), and treat a single voice-guard pass as a signal, not a guarantee.
 
 ---
 
