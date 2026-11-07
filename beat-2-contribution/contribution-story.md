@@ -71,10 +71,9 @@ with the repo's `AGENTS.md`, AI policy for context. It's excluded via `.git/info
 
 My manifest has two must-pass rows, a build plus the BMP ctest and a clang-format 22 dry-run on the BMP plugin files. It also lists three excluded checks with dated reasons: the full testsuite, the repo-wide format script and the `-Werror` build. The hook test `gh pr create --help` went through without stopping, because Claude Code on my machine runs PowerShell and both the ship-gate and voice guard hooks only matched the Bash tool. I changed the matchers to `Bash|PowerShell` and the tool-name checks in both scripts, and after that the test stopped as expected. The gate runs manifest rows through cmd.exe, so the rows use cmd syntax. On 10/31/26 it passed my real branch: both rows ok, and all seven required pr-precheck checks passed. It still flagged things I fixed in `pr_draft.md`: "One test failed" when it was one CI job, a CI claim it couldn't verify (I checked the run myself), and no sentence saying what Claude did beyond the `Assisted-by:` line.
 
-**Unit 8: [one line on the tool work]**
+**Unit 8: Installed the PR monitor, wrote my playbook, and changed the monitor to measure each repo's response time**
 
-[2-4 sentences: the PR-monitor and your playbook. What it read, what it
-drafted, what you did with the draft.]
+By the time I installed the monitor, lgritz had already approved and merged #5650, seven hours after I opened it, so the full run drafted a merged follow-up: a thank-you, a line saying #1901 could be closed "if it didn't close automatically", and a repeat of my V3 scope note. It couldn't see who merged the PR or that #1901 had already closed, so it hedged; I dropped those lines and the V3 paragraph and posted my own short thanks to lgritz through the voice guard. Writing the staleness rules showed me the monitor only reads my own PR, so it couldn't follow a rule like "use the median of recent PRs", and I didn't want to hard-code a number for every repo. So I changed `monitor.py`: it can now make read-only `gh pr list` and GET-only `gh api repos/...` calls, and on a quiet PR it measures the last 10 closed PRs from outside contributors (time to first response), shows me the median next to the wait lines in the repo's review docs, and saves it to `references/repo-wait-times.md` only after I confirm it (OIIO: median 0.3 days, range 0.1 to 1.7). Testing found a bug where Git Bash made a missing answer count as "reject", which now stops instead, and an existing gap where a quiet PR that crossed my threshold later still said "nothing new"; I also rewrote my playbook around "usual PR response time" with floors (nudge an away reviewer after 7 days, close only 14 days after my nudge), because 3x of 0.3 days would have closed the PR before I nudged.
 
 ---
 
@@ -285,8 +284,10 @@ Disclosure: another session told me I could leave `Assisted-by:` off the fix com
 
 - 2026-11-03: none yet from maintainers. The EasyCLA bot commented within a minute that my commits weren't covered by a signed CLA, and its check failed. I signed the Individual CLA, and after a recheck the bot showed "EasyCLA check passed". DCO passed from the start because every commit has `Signed-off-by`.
 - 2026-11-03: the CI workflows haven't started on the PR yet; as a first-time contributor, a maintainer may need to approve the run.
+- 2026-11-03: the Copilot review bot posted "Approval recommended" with no open issues. Later that day lgritz approved ("LGTM, thanks for the fix!") and merged the PR at 22:18 UTC with all 30 checks passing, about seven hours after I opened it. Issue #1901 closed with the merge.
+- 2026-11-07: I answered with a short thank-you to lgritz on the PR, written in my own words from the PR monitor's draft and posted through the voice guard: https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5650#issuecomment-6709453993. Nothing else was asked of me, so there was no second review round.
 
-**Status:** Awaiting review
+**Status:** Merged
 
 **Toolkit**
 
@@ -301,25 +302,37 @@ Disclosure: another session told me I could leave `Assisted-by:` off the fix com
 
 **Technical Skills Gained**
 
-[What you learned technically, named concretely.]
+- How BMP stores pixels: the V3, V4 and V5 header versions, what compression 3 (`BI_BITFIELDS`) means, and how to pull a channel out of a 32-bit pixel with a mask, a right shift and a bit count. I also learned to read little-endian byte order, which is why a file whose masks say R,G,B,A sits on disk as A,B,G,R.
+- Building a large CMake C++ project on Windows with MSYS2, Ninja and g++, and running one test with `ctest --test-dir build -R bmp`.
+- How OIIO tests a format: test files in `testsuite/bmp/src/`, commands in `run.py`, and a reference output (`ref/out.txt`) that the test diffs against. A good change only adds lines to it.
+- Writing binary test files by hand with Python's `struct.pack`, and checking them against an independent decoder (Pillow) and the unfixed release.
+- The project side of a PR: `Signed-off-by` for the DCO, the CLA bot, an `Assisted-by:` trailer, rebasing to add trailers before pushing, and running the same clang-format version as CI.
 
 **Challenges Overcome**
 
-[What was hard and how you solved it; point at the real events, the
-Toolkit blocks above are full of them.]
+- Understanding the format. I thought `WINDOWS_V3` meant 16 bits per pixel and that compression 3 meant "non-default masks", and my first guess put the bug in `open()`. Following the masks myself from `read_header` to `read_native_scanline` fixed all three.
+- The bug was bigger than the title said. lgritz suggested a test with a different value in every channel, and that showed the file was read as G,B,A,R, not with A and B swapped.
+- Two wrong turns in the fix: the new branch had no `return true`, so it fell through into the old byte swap, and a zero alpha mask came out as fully transparent until I added the 255 case.
+- Windows. `main` doesn't build with warnings as errors under MinGW, the testsuite needs a Windows CPython and `C:\msys64\usr\bin` on PATH, and `runtest.py` copies `src/` and `ref/` only once, so stale copies hid my new files. I hit the PATH problem twice, on 10/30 and 11/03.
+- The gates. The voice guard passed a draft by hand and stopped a nearly identical one as a hook, and the ship-gate rejected my branch because `test_evidence.md` was older than my fork CI run. I refreshed the evidence and rewrote the lines it flagged.
 
 **What I'd Do Differently Next Time**
 
-[Reflection on your process.]
+- Test with a different value in every channel (or field) from the start. The issue title led me to "A and B swapped", and my first comparison could not have shown the rest.
+- Write the shell setup (PATH, Python, build flags) into one script the first time, so a new shell can't break the test again.
+- Refresh `test_evidence.md` after CI, before running the ship-gate, and read the AI policy myself before starting, instead of trusting whichever session answered.
+- Set up the PR monitor and playbook before opening the PR. OIIO answered outside PRs in a median of 0.3 days, so my PR merged before I had anything to watch it with.
+- Open the follow-up issue for 32-bit V3 bitfields files, which my fix leaves out on purpose, while the details are fresh.
 
 ---
 
 ## Resources Used
 
-[What actually helped, not a reading list. List things this story
-already shows you using: the doc you followed to set the environment
-up, the thread that explained the bug, the person who answered you.
-One real entry beats ten plausible ones.]
-
-- [Link to documentation that helped]
-- [Discussion, issue, or post that helped]
+- lgritz's comment on #1901 suggesting a test with a different value in every channel, which turned "A and B swapped" into the real bug: https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/1901#issuecomment-6375698425
+- OpenImageIO's `docs/dev/AI_Policy.md` (when `Assisted-by:` is required) and `CONTRIBUTING.md` (DCO sign-off, CLA, PR process): https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/dev/AI_Policy.md and https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/CONTRIBUTING.md
+- `docs/dev/CodeReview.md`, which says when a quiet PR can get a follow-up comment; I used it for my playbook: https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/docs/dev/CodeReview.md
+- The issue's test file, `input.bmp`, from NatronGitHub/Natron-Tests: https://github.com/NatronGitHub/Natron-Tests/tree/master/TestImageBMP
+- OIIO's existing BMP test files `g32bf.bmp` and `g32def.bmp` and `src/bmp.imageio/` itself: the 16-bit mask code was the pattern for my 32-bit branch.
+- Pillow 13 as an independent BMP decoder to check my test files and expected values against.
+- My fork's CI run, which covered the platforms and full testsuite I couldn't run locally: run 41219941633 on julianty/OpenImageIO.
+- Claude Code, used as described in each Toolkit block (explaining code, reviewing my drafts, running builds and checks), disclosed with `Assisted-by:` on every commit.
