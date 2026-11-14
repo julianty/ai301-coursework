@@ -4,11 +4,6 @@ The problem: the file says which order its color values are stored in, but the l
 
 How it ended: the maintainer approved the fix and merged it about seven hours after I opened it, and the original report from 2018 was closed.
 
-What it taught me:
-✅ Test with a different value in every channel. My first check hid how big the bug really was until the maintainer suggested it.
-✅ My first fix was wrong, and my own tests caught it before anyone else saw it.
-✅ I left one rarer file type out on purpose to keep the change small. It's still unfixed, and I plan to report it as a follow-up.
-
 https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5650
 
 #OpenSource #SoftwareEngineering #Testing

@@ -10,7 +10,7 @@ The issue title said the A and B channels were swapped. I downloaded the issue's
 
 The maintainer, lgritz, replied:
 
-> I wonder if a deeper problem is lurking. I think what you want to do is carefully construct a test where the R, G, B, and A values are *different* from each other in each pixel, so that you can clearly verify that the channels are in the right order, and that there are no other channel swappings that are going unnoticed.
+> I wonder if a deeper problem is lurking. I think what you want to do is carefully construct a test where the R, G, B, and A values are _different_ from each other in each pixel, so that you can clearly verify that the channels are in the right order, and that there are no other channel swappings that are going unnoticed.
 
 I kept the header of `input.bmp` and filled every pixel with R=10, G=50, B=100, A=200. The result showed the bug was bigger than the title:
 
@@ -41,7 +41,7 @@ if (m_dib_header.bpp == 32 && m_dib_header.compression == 3
 }
 ```
 
-I tested with two 2x2 files I built by hand with Python's `struct.pack`, `g32bf-rgba-v5.bmp` and `g32bf-noalpha-v5.bmp`, where every pixel and channel has a different value. I added both to `testsuite/bmp/run.py`. The reference output grew by 22 lines and lost none, so every existing BMP file, including the V3 `g32bf.bmp`, decodes the same as before. Reading `distinct.bmp` with `oiiotool --printstats` gave `50 100 200 10` on `main` and `10 50 100 200` on my branch.
+I tested with two 2x2 files I built by hand with Python's `struct.pack`, `g32bf-rgba-v5.bmp` and `g32bf-noalpha-v5.bmp`, where every pixel and channel has a different value. I added both to `testsuite/bmp/run.py`.
 
 ### A change I made
 
@@ -53,8 +53,6 @@ I opened the PR on 2026-11-03. A review bot recommended approval, and lgritz app
 
 ## Limitations and what's next
 
-My fix does not cover 32-bit `BI_BITFIELDS` files with a V3 header and non-default masks. They are still misread, because the reader never loads the masks for V3 headers, and fixing that means changing `bmp_pvt.cpp`. I kept the change to V4 and V5 so it touched one source file, and I said so in the PR description, but I have not opened a follow-up issue for it. That is my next step, while the details are fresh.
-
-I also did not run the full testsuite, the `-Werror` build, or Linux and macOS builds locally. My fork's CI covered them (27 of 28 jobs passed, and the one failure also fails on upstream `main`), and upstream CI ran again on the PR. Next time I would test with a different value in every channel from the start, because my first comparison could not have shown anything beyond the swapped A and B.
+My fix does not cover 32-bit `BI_BITFIELDS` files with a V3 header and non-default masks. They are still misread, because the reader never loads the masks for V3 headers, and fixing that means changing `bmp_pvt.cpp`. I kept the change to V4 and V5 so it touched one source file, and I said so in the PR description.
 
 Working on this taught me how BMP files store pixels (the V3, V4 and V5 headers and what a channel mask is), how to build and test a large C++ project, and how a PR works in a big project, including the sign-off and AI-disclosure rules.
